@@ -58,6 +58,25 @@ body{
   margin-top:4px;
 }
 
+.video-banner {
+  max-width: 640px;
+  width: 70%;
+  height: 60px;
+  margin: 12px auto 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(16, 24, 40, 0.3);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.video-banner video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0.8;
+}
+
 .body{
   flex:1;
   padding:16px 12px 32px;
@@ -244,24 +263,9 @@ body{
 }
 .custom-add-row button:hover{background:#2563eb}
 .tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.tag{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;font-size:11.5px;font-weight:600;border:1px solid transparent}
-.tag.inactive{background:#1e293b!important;color:#64748b!important;border-color:#334155}
+.tag{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;font-size:11.5px;font-weight:600}
 .tag-remove{cursor:pointer;opacity:.6;font-size:11px}
 .tag-remove:hover{opacity:1}
-.saved-keyword-select{
-  width:220px;
-  max-width:42%;
-  margin-left:auto;
-  background:#0f172a;
-  border:1px solid #334155;
-  border-radius:8px;
-  padding:8px 10px;
-  color:#cbd5e1;
-  font-size:12.5px;
-  outline:none;
-  flex-shrink:0;
-}
-.saved-keyword-select:focus{border-color:#3b82f6}
 
 .color-chip {
   width: 24px;
@@ -401,6 +405,10 @@ body{
       <h1>TEXT <span class="highlight">HIGHLIGHTER</span> <span class="version">v1.0</span></h1>
       <p>Offline Ready Smart PDF Keyword Highlighter</p>
     </div>
+    
+    <div class="video-banner">
+      <video src="mp_.mp4" autoplay loop muted playsinline></video>
+    </div>
   </div>
 </div>
 
@@ -432,22 +440,17 @@ body{
       <div class="hl-row" style="justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 12px;">
           <label class="toggle"><input type="checkbox" id="hlEnabled"><span class="slider"></span></label>
-          <span class="hl-label" style="font-size: 13px; font-weight: 700;">Use Saved Keywords</span>
+          <span class="hl-label" style="font-size: 13px; font-weight: 700;">Select All Keywords</span>
         </div>
-        <select class="saved-keyword-select" id="savedKeywordSelect">
-          <option value="">Saved keywords</option>
-        </select>
-        <span class="badge-count" id="selCount">0</span>
-      </div>
-
-      <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #1e293b;">
-        <div class="custom-add-wrap">
-          <div class="custom-add-row">
-            <input type="text" id="cwInput" autocomplete="off" spellcheck="false" placeholder="Type keywords to save (comma or line separated)">
-            <button type="button" onclick="addCustom()">Save</button>
+        <div class="dropdown-wrap">
+          <button class="dropdown-btn" id="dropBtn" onclick="toggleDD()">
+            Select Words <span class="badge-count" id="selCount">0</span><span class="arrow">v</span>
+          </button>
+          <div class="dropdown-menu" id="dropMenu" style="display:none">
+            <div class="menu-section">Suggested Keywords</div>
+            <div id="presetList"></div>
           </div>
         </div>
-        <div class="tag-list" id="tagList"></div>
       </div>
       
       <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between;">
@@ -462,8 +465,19 @@ body{
     </div>
 
     <div class="card">
+      <div class="card-title">3. ADD CUSTOM WORD TAGS</div>
+      <div class="custom-add-wrap">
+        <div class="custom-add-row">
+          <input type="text" id="cwInput" placeholder="Enter custom words (comma or space separated)">
+          <button onclick="addCustom()">Add</button>
+        </div>
+      </div>
+      <div class="tag-list" id="tagList"></div>
+    </div>
+
+    <div class="card">
       <div class="card-title">
-        3. Highlight Document
+        4. Highlight Document
       </div>
       <button class="action-btn run-btn" id="runBtn" onclick="handleBtn()">Highlight Keywords</button>
       <div class="status-bar" id="sb">
@@ -473,13 +487,13 @@ body{
     </div>
 
     <div class="card" id="previewCard" style="display:none">
-      <div class="card-title">4. Save Highlighted Document</div>
+      <div class="card-title">5. Save Highlighted Document</div>
       <p style="font-size:11px;color:#94a3b8;margin-bottom:12px">
         If automatic download is blocked, use the button below to save the highlighted PDF to your local drive.
       </p>
-      <a class="action-btn dl-btn active" id="pdfDownloadLink" href="#" onclick="return dlPDF(event)">
+      <button class="action-btn dl-btn active" onclick="dlPDF()">
         DOWNLOAD PDF FILE
-      </a>
+      </button>
     </div>
 
   </div>
@@ -558,11 +572,6 @@ function downloadSelf() {
   if (tagList) tagList.innerHTML = '';
   const previewCard = clone.querySelector('#previewCard');
   if (previewCard) previewCard.style.display = 'none';
-  const pdfDownloadLink = clone.querySelector('#pdfDownloadLink');
-  if (pdfDownloadLink) {
-    pdfDownloadLink.setAttribute('href', '#');
-    pdfDownloadLink.removeAttribute('download');
-  }
   
   const htmlContent = "<!DOCTYPE html>\n" + clone.outerHTML;
   const blob = new Blob([htmlContent], { type: 'text/html' });
@@ -635,6 +644,8 @@ async function initLibraries() {
 
 initLibraries();
 
+const PRESETS=['IMPORTANT','URGENT','ACTION REQUIRED','REVIEW','APPROVED','REJECTED','DEADLINE','FOLLOW UP','CONFIDENTIAL','NOTE','WARNING','UPDATE','FINAL','DRAFT'];
+
 let currentThemeName = 'blue';
 let activeHlColorRGB = [0.36, 0.78, 1.0];
 
@@ -651,11 +662,7 @@ function selectColor(name, rgbArray) {
   updRun();
 }
 
-const CUSTOM_KEYWORDS_STORAGE_KEY = 'pdfDocumentHighlighter.customKeywords.v1';
-const CUSTOM_KEYWORDS_ENABLED_KEY = 'pdfDocumentHighlighter.useSavedKeywords.v1';
-const CUSTOM_KEYWORDS_DRAFT_KEY = 'pdfDocumentHighlighter.keywordDraft.v1';
-const CUSTOM_KEYWORDS_STATE_KEY = 'pdfDocumentHighlighter.state.v2';
-let sel=new Set(), custom=[], pdfBytes=null, fname='document', done=false, outBytes=null, pdfDownloadUrl=null;
+let sel=new Set(), custom=[], pdfBytes=null, fname='document', done=false, outBytes=null;
 let detectedAirports = []; 
 let iataAirports = []; 
 let extractedFileDate = ''; 
@@ -665,209 +672,72 @@ function canRun(){return sel.size>0 && pdfBytes!==null;}
 function updRun(){document.getElementById('runBtn').className='action-btn run-btn'+(canRun()?' active':'');}
 function handleBtn(){if(done)dlPDF();else runHL();}
 
-function clearDownloadUrl(){
-  if (pdfDownloadUrl) {
-    URL.revokeObjectURL(pdfDownloadUrl);
-    pdfDownloadUrl = null;
-  }
-  const link = document.getElementById('pdfDownloadLink');
-  if (link) {
-    link.setAttribute('href', '#');
-    link.removeAttribute('download');
-  }
-}
-
 function setStatus(cls,txt){
   const b=document.getElementById('sb');
   b.className='status-bar'+(cls?' '+cls:'');
   document.getElementById('st').textContent=txt;
 }
 
-function normalizeKeyword(value){
-  return value.replace(/\s+/g, ' ').trim();
-}
+const pl=document.getElementById('presetList');
+PRESETS.forEach((w,i)=>{
+  const d=document.createElement('div');d.className='menu-item';
+  d.innerHTML=`<input type="checkbox" id="p${i}"><label for="p${i}" style="cursor:pointer;flex:1">${w}</label>`;
+  d.querySelector('input').addEventListener('change',e=>{
+    e.target.checked?sel.add(w):sel.delete(w);
+    updBadge();done=false;updRun();
+  });
+  pl.appendChild(d);
+});
 
-function keywordKey(value){
-  return normalizeKeyword(value).toUpperCase();
-}
-
-function hasKeyword(list, keyword){
-  const key = keywordKey(keyword);
-  return list.some(item => keywordKey(item) === key);
-}
-
-function parseCustomKeywords(value){
-  return value
-    .split(/[\n,;]+/)
-    .map(normalizeKeyword)
-    .filter(Boolean);
-}
-
-function uniqueKeywords(list){
-  return list.map(normalizeKeyword).filter(Boolean).reduce((acc, keyword) => {
-    if (!hasKeyword(acc, keyword)) acc.push(keyword);
-    return acc;
-  }, []);
-}
-
-function readState(){
-  try {
-    const raw = localStorage.getItem(CUSTOM_KEYWORDS_STATE_KEY) || window.name || '';
-    if (!raw) return null;
-    const state = JSON.parse(raw);
-    return state && typeof state === 'object' ? state : null;
-  } catch (e) {
-    return null;
-  }
-}
-
-function writeState(){
-  const state = {
-    custom: uniqueKeywords(custom),
-    enabled: document.getElementById('hlEnabled')?.checked ?? true,
-    draft: document.getElementById('cwInput')?.value || ''
-  };
-  try {
-    const raw = JSON.stringify(state);
-    localStorage.setItem(CUSTOM_KEYWORDS_STATE_KEY, raw);
-    window.name = raw;
-  } catch (e) {
-    try { window.name = JSON.stringify(state); } catch (err) {}
-  }
-}
-
-function loadSavedCustomKeywords(){
-  try {
-    const state = readState();
-    if (state && Array.isArray(state.custom)) return uniqueKeywords(state.custom);
-    const saved = JSON.parse(localStorage.getItem(CUSTOM_KEYWORDS_STORAGE_KEY) || '[]');
-    if (!Array.isArray(saved)) return [];
-    return uniqueKeywords(saved);
-  } catch (e) {
-    return [];
-  }
-}
-
-function saveCustomKeywords(){
-  try {
-    localStorage.setItem(CUSTOM_KEYWORDS_STORAGE_KEY, JSON.stringify(custom));
-  } catch (e) {
-    console.warn('Custom keyword storage is unavailable.', e);
-  }
-  writeState();
-}
-
-function loadSavedKeywordsEnabled(){
-  try {
-    const state = readState();
-    if (state && typeof state.enabled === 'boolean') return state.enabled;
-    const saved = localStorage.getItem(CUSTOM_KEYWORDS_ENABLED_KEY);
-    return saved === null ? true : saved === 'true';
-  } catch (e) {
-    return true;
-  }
-}
-
-function saveSavedKeywordsEnabled(enabled){
-  try {
-    localStorage.setItem(CUSTOM_KEYWORDS_ENABLED_KEY, enabled ? 'true' : 'false');
-  } catch (e) {
-    console.warn('Keyword enabled-state storage is unavailable.', e);
-  }
-  writeState();
-}
-
-function loadKeywordDraft(){
-  try {
-    const state = readState();
-    if (state && typeof state.draft === 'string') return state.draft;
-    return localStorage.getItem(CUSTOM_KEYWORDS_DRAFT_KEY) || '';
-  } catch (e) {
-    return '';
-  }
-}
-
-function saveKeywordDraft(value){
-  try {
-    localStorage.setItem(CUSTOM_KEYWORDS_DRAFT_KEY, value);
-  } catch (e) {
-    console.warn('Keyword draft storage is unavailable.', e);
-  }
-  writeState();
-}
-
-function saveInputKeywords(){
-  const inp=document.getElementById('cwInput');
-  const added = parseCustomKeywords(inp.value);
-  added.forEach(w=>{if(!hasKeyword(custom,w))custom.push(w);});
-  custom = uniqueKeywords(custom);
-  if (added.length > 0) {
-    inp.value='';
-    saveKeywordDraft('');
-    saveCustomKeywords();
-  } else {
-    writeState();
-  }
-  return added;
-}
-
-const hlEnabledInput = document.getElementById('hlEnabled');
-hlEnabledInput.addEventListener('change',e=>{
+document.getElementById('hlEnabled').addEventListener('change',e=>{
   if(e.target.checked){
-    saveInputKeywords();
+    PRESETS.forEach(w=>sel.add(w));
+    pl.querySelectorAll('input').forEach(c=>c.checked=true);
     custom.forEach(w=>sel.add(w));
   } else {
     sel.clear();
+    pl.querySelectorAll('input').forEach(c=>c.checked=false);
   }
-  saveSavedKeywordsEnabled(e.target.checked);
-  renderTags();updBadge();done=false;updRun();
+  updBadge();done=false;updRun();
 });
 
 function updBadge(){
   const t=sel.size,el=document.getElementById('selCount');
   el.textContent=t;
-  el.className='badge-count'+(t>0&&t>=custom.length?' all':'');
+  el.className='badge-count'+(t>0&&t>=PRESETS.length+custom.length?' all':'');
 }
 
-function addCustom(){
-  const added = saveInputKeywords();
-  custom.forEach(w=>{if(added.some(a=>keywordKey(a)===keywordKey(w)))sel.add(w);});
-  hlEnabledInput.checked = true;
-  saveSavedKeywordsEnabled(true);
-  renderTags();updBadge();done=false;updRun();
+function toggleDD(){
+  const m=document.getElementById('dropMenu'),b=document.getElementById('dropBtn');
+  const o=m.style.display==='none';
+  m.style.display=o?'block':'none';
+  b.classList.toggle('open',o);
 }
-document.getElementById('cwInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addCustom();}});
-document.getElementById('cwInput').addEventListener('input',e=>saveKeywordDraft(e.target.value));
-document.getElementById('cwInput').addEventListener('blur',()=>{saveInputKeywords();renderTags();updBadge();updRun();});
-window.addEventListener('beforeunload',()=>saveInputKeywords());
-document.getElementById('savedKeywordSelect').addEventListener('change',e=>{
-  if(e.target.value) {
-    document.getElementById('cwInput').value=e.target.value;
-    saveKeywordDraft(e.target.value);
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.dropdown-wrap')){
+    document.getElementById('dropMenu').style.display='none';
+    document.getElementById('dropBtn').classList.remove('open');
   }
 });
 
+function addCustom(){
+  const inp=document.getElementById('cwInput');
+  inp.value.split(/[\s,]+/).map(w=>w.trim().toUpperCase()).filter(w=>w)
+    .forEach(w=>{if(!custom.includes(w)&&!PRESETS.includes(w))custom.push(w);});
+  inp.value='';
+  custom.forEach(w=>sel.add(w));
+  renderTags();updBadge();done=false;updRun();
+}
+document.getElementById('cwInput').addEventListener('keydown',e=>{if(e.key==='Enter')addCustom();});
+
 function renderTags(){
   const list=document.getElementById('tagList');list.innerHTML='';
-  const dropdown=document.getElementById('savedKeywordSelect');
-  dropdown.innerHTML='';
-  const placeholder=document.createElement('option');
-  placeholder.value='';
-  placeholder.textContent=custom.length ? 'Saved keywords' : 'No saved keywords yet';
-  dropdown.appendChild(placeholder);
-  custom.forEach(w=>{
-    const option=document.createElement('option');
-    option.value=w;
-    option.textContent=w;
-    dropdown.appendChild(option);
-  });
   const tc=[['#ffe066','#1a1400'],['#5bde8a','#062210'],['#ff8fa3','#2a0008'],['#5bc8ff','#001a26'],['#ffa94d','#2a1000'],['#c084fc','#1a0030']];
   custom.forEach((w,i)=>{
     const[bg,fg]=tc[i%tc.length];
     const t=document.createElement('div');t.className='tag';
     t.style.cssText=`background:${bg};color:${fg}`;
-    if (!sel.has(w)) t.classList.add('inactive');
-    t.title = sel.has(w) ? 'Keyword is enabled' : 'Keyword is saved but disabled';
     const label=document.createElement('span');
     label.textContent=w;
     const remove=document.createElement('span');
@@ -880,20 +750,8 @@ function renderTags(){
     list.appendChild(t);
   });
 }
-function rmCustom(i){sel.delete(custom[i]);custom.splice(i,1);saveCustomKeywords();saveSavedKeywordsEnabled(document.getElementById('hlEnabled').checked);renderTags();updBadge();done=false;updRun();}
+function rmCustom(i){sel.delete(custom[i]);custom.splice(i,1);renderTags();updBadge();done=false;updRun();}
 
-custom = loadSavedCustomKeywords();
-hlEnabledInput.checked = loadSavedKeywordsEnabled();
-if (hlEnabledInput.checked) {
-  custom.forEach(w=>sel.add(w));
-}
-renderTags();
-updBadge();
-updRun();
-
-const keywordInput=document.getElementById('cwInput');
-keywordInput.value = loadKeywordDraft();
-keywordInput.focus();
 const fi=document.getElementById('fi'),ua=document.getElementById('uploadArea');
 
 ua.addEventListener('click', e => {
@@ -921,7 +779,6 @@ function loadFile(file){
   document.getElementById('fileName').textContent=file.name;
   ua.classList.add('has-file');
   pdfBytes=null; done=false; outBytes=null; 
-  clearDownloadUrl();
   detectedAirports=[]; iataAirports=[];
   extractedFileDate = '';
   extractedFlightNum = '';
@@ -1152,14 +1009,11 @@ async function runHL(){
   if(!canRun())return;
   if(!libsReady){setStatus('error','Required libraries not fully loaded.');return;}
 
-  const SENTENCE_KW = ['CLSD', 'CLOSED', 'RESTRICT', 'NOT AVBL'];
-
   const runBtn=document.getElementById('runBtn');
   runBtn.className='action-btn run-btn';
   runBtn.innerHTML='Processing locally...';
   setStatus('processing','Analyzing text and applying highlights...');
   done=false;outBytes=null;detectedAirports=[]; iataAirports=[];
-  clearDownloadUrl();
   document.getElementById('previewCard').style.display = 'none';
 
   await new Promise(r=>setTimeout(r,50));
@@ -1412,27 +1266,6 @@ async function runHL(){
               }
             }
           }
-          continue; 
-        }
-
-        const hasSentenceKw = SENTENCE_KW.some(kw => checkKeywordMatch(lineText, kw));
-
-        if (hasSentenceKw) {
-          const minX = Math.min(...lineItems.map(it => it.transform[4]));
-          const maxX = Math.max(...lineItems.map(it => it.transform[4] + (it.width || 0)));
-          const itemY = line.y;
-          const itemH = Math.abs(lineItems[0].transform[3]) || 10;
-          const rh = itemH * sy;
-
-          libPage.drawRectangle({
-            x: minX * sx,
-            y: (itemY * sy) - (rh * 0.2), 
-            width: (maxX - minX) * sx,
-            height: Math.max(rh * 1.2, 8), 
-            color: PDFLib.rgb(intenseRGB[0], intenseRGB[1], intenseRGB[2]),
-            opacity: 0.25
-          });
-          totalHits++;
           continue; 
         }
 
@@ -1956,11 +1789,12 @@ async function runHL(){
     done=true;
     runBtn.className='action-btn dl-btn active';
     runBtn.innerHTML='DOWNLOAD PDF FILE';
-    preparePDFDownload();
     
     setStatus('done',`Completed! ${numPages} pages and ${totalHits} elements highlighted.`);
     
     document.getElementById('previewCard').style.display='block';
+    
+    dlPDF();
 
   } catch(err) {
     setStatus('error','Execution error: '+err.message);
@@ -1969,42 +1803,24 @@ async function runHL(){
   }
 }
 
-function getPDFDownloadName(){
-  const safeBaseName = (fname || 'document').replace(/[\\/:*?"<>|]+/g, '_').trim() || 'document';
-  return `${safeBaseName}_highlighted.pdf`;
-}
-
-function preparePDFDownload(){
-  if(!done||!outBytes)return null;
-  clearDownloadUrl();
-  const blob=new Blob([outBytes],{type:'application/pdf'});
-  pdfDownloadUrl=URL.createObjectURL(blob);
-  const link=document.getElementById('pdfDownloadLink');
-  if(link){
-    link.href=pdfDownloadUrl;
-    link.download=getPDFDownloadName();
-  }
-  return pdfDownloadUrl;
-}
-
-function dlPDF(event){
-  if(!done||!outBytes)return false;
+function dlPDF(){
+  if(!done||!outBytes)return;
   try{
-    const url=pdfDownloadUrl || preparePDFDownload();
-    if(!url)return false;
-    if(event && event.currentTarget && event.currentTarget.tagName === 'A'){
-      return true;
-    }
+    const blob=new Blob([outBytes],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
     a.href=url;
-    a.download = getPDFDownloadName();
+    
+    const safeBaseName = (fname || 'document').replace(/[\\/:*?"<>|]+/g, '_').trim() || 'document';
+    const downloadName = `${safeBaseName}_highlighted.pdf`;
+    
+    a.download = downloadName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    return false;
+    setTimeout(()=>URL.revokeObjectURL(url), 30000);
   }catch(e){
     setStatus('error','Failed to write PDF: '+e.message);
-    return false;
   }
 }
 </script>
